@@ -1,0 +1,44 @@
+# Distributed under the OSI-approved BSD 3-Clause License.
+# See accompanying file LICENSE.txt for details.
+
+name: ci-generate-txt
+
+on:
+  # Runs at 00:00 on Wednesday in UTC zone (08:00 on Wednesday in Taipei zone)
+  schedule:
+    - cron: '0 0 * * 3'
+  # push:
+  #   branches:
+  #     - 'master'
+  # Allows for the workflow to be manually started through the GitHub UI
+  workflow_dispatch:
+
+jobs:
+  read-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.smd.outputs.VERSION }}
+    steps:
+      - name: Checkout to '${{ github.ref }}'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - name: Set Matrix Data
+        id: smd
+        run: |
+          VERSION=$(jq -c '.version' .github/workflows/matrix.json)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+  schedule:
+    needs: read-matrix
+    secrets: inherit
+    concurrency:
+      group: ${{ github.workflow }}-${{ matrix.VERSION }}
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        VERSION: ${{ fromJson(needs.read-matrix.outputs.VERSION) }}
+      fail-fast: false
+    uses: ./.github/workflows/use-generate-txt.yml
+    with:
+      VERSION: ${{ matrix.VERSION }}
