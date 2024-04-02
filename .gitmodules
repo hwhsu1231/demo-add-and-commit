@@ -1,0 +1,4 @@
+[submodule "submodule"]
+	path = submodule
+	url = ../../hwhsu1231/demo-submodule.git
+	branch = master
